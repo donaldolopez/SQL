@@ -1,0 +1,67 @@
+WITH 
+
+Enterprise AS (
+    SELECT 
+        id,
+        segments
+    FROM 
+        segments_mom c 
+),
+
+transactions AS (
+    SELECT 
+        id,
+        tran_id,
+        send_usd_amt,
+        send_date,
+        product_name,
+        current_transaction_status,
+        send_hq_pty_name
+        
+    FROM 
+        tran_fact
+    WHERE 
+        send_date BETWEEN '2023-01-01' AND '2023-06-30' 
+        AND product_name = 'MONEY TRANSFER'                      -- Filter for Money Transfers
+        AND internal_flag = 'N'                         
+        AND current_transaction_status NOT IN ('REJ', 'REF', 'RSN', 'UAK')  -- Completed transactions only
+        AND id IS NOT NULL                            
+),
+
+Audience AS (
+    SELECT 
+        t.id,
+        tran_id,
+        send_usd_amt,
+        send_date,
+        segments
+    FROM transactions t
+    JOIN enterprise e ON t.sender_ucp_id = e.sender_ucp_id
+),
+
+Aggregated AS (
+    SELECT 
+        id,
+        SUM(send_usd_amt) AS Total_Send_Face,
+        COUNT(DISTINCT id) AS Total_Transactions
+    FROM Audience
+    GROUP BY id
+),
+
+Quintiles AS (
+    SELECT 
+        id,
+        Total_Send_Face,
+        Total_Transactions,
+        NTILE(5) OVER (ORDER BY Total_Send_Face DESC) AS Quintile -- Calculate quintiles
+    FROM Aggregated
+)
+
+SELECT 
+    Quintile,
+    COUNT(id) AS Number_of_Customers,
+    SUM(Total_Send_Face) AS Total_Send_Face_Amount,
+    SUM(Total_Transactions) AS Total_Transactions
+FROM Quintiles
+GROUP BY Quintile
+ORDER BY Quintile;
