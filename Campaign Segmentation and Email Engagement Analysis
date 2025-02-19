@@ -1,0 +1,394 @@
+WITH 
+
+offers AS (
+select	
+    SUBSTRING(campaigns.campaign_name,1,7) as campaign,
+	upper(offers.email) as email,
+	offers.OFFER_CODE,
+	VALID_FROM,
+	VALID_UNTIL,
+	SELECTION_KEY,
+	offers.RESPONSE_SCORE,
+	offers.RISK_SCORE,
+	applications.id  AS app_id,
+    applications.application_status,
+	offers.selection_key
+FROM
+    OFFERS AS offers
+    LEFT JOIN CAMPAIGNS AS campaigns ON offers.CAMPAIGN_ID = campaigns.ID
+    LEFT JOIN APPLICATIONS AS applications ON offers.APPLICATION_ID = applications.ID
+WHERE  
+    SUBSTRING(campaigns.campaign_name,1,3)  = 'EXC'
+    AND campaign = 'EXC088P'
+    AND RISK_SCORE BETWEEN '000' AND '000'
+    AND RESPONSE_SCORE BETWEEN '000' AND '000'
+    AND email is NOT NULL
+--    AND SUBSTRING(campaigns.campaign_name,4,3)*1 >= 88  -- This value will add the incremental campaign numbers.
+
+),
+
+-- ------------------------------- IDENTIFYING ALL BINS ---------------------------------
+-- BIN_1_TEST
+sends AS (
+SELECT 
+json_extract_path_text(transactional_data,'offerRiskScore') as RISK_SCORE,
+json_extract_path_text(transactional_data,'offerResponseScore') as RESPONSE_SCORE,
+campaign_id,
+event_name,
+transactional_data,
+created_at,
+UPPER(EMAIL) as join_email
+
+
+FROM
+    BL_PROD.EVENT
+WHERE 
+    campaign_id IN ('9198870')--,'9198946','9198966','9199010','9198886','9199074','9199084')
+    and event_name = 'emailSend'
+    and transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06 00:00:00.000000'
+    AND RISK_SCORE IS NOT NULL
+    AND RESPONSE_SCORE IS NOT NULL
+),
+
+BIN_1_TEST AS (
+SELECT * FROM sends 
+INNER JOIN offers on offers.email = sends.join_email
+),
+
+-- BIN_1_BAU IS EVERYONE THAT IS NOT IN BIN_1_TEST SINCE THEY ARE FILTERED THROUGH RISK/RESPONSE SCORE.
+BIN_1_BAU AS (
+SELECT * FROM OFFERS 
+WHERE email NOT IN (SELECT join_email FROM BIN_1_TEST)
+), 
+
+-- BIN_2 
+offers_2 AS ( ---- ONLY USED TO GET POPULATION OF BIN 2
+select	
+    SUBSTRING(campaigns.campaign_name,1,7) as campaign,
+	upper(offers.email) as email,
+	offers.OFFER_CODE,
+	VALID_FROM,
+	VALID_UNTIL,
+	SELECTION_KEY,
+	offers.RESPONSE_SCORE,
+	offers.RISK_SCORE,
+	applications.id  AS app_id,
+    applications.application_status,
+	offers.selection_key
+FROM
+    OFFERS AS offers
+    LEFT JOIN CAMPAIGNS AS campaigns ON offers.CAMPAIGN_ID = campaigns.ID
+    LEFT JOIN APPLICATIONS AS applications ON offers.APPLICATION_ID = applications.ID
+WHERE  
+    SUBSTRING(campaigns.campaign_name,1,3)  = 'EXC'
+    AND campaign = 'EXC088P'
+    AND email is NOT NULL
+    AND email NOT IN (
+        SELECT join_email FROM BIN_1_TEST
+        UNION
+        SELECT email FROM BIN_1_BAU 
+        )
+),
+
+BIN_2 AS (
+SELECT distinct(offer_code), campaign, email, app_id, application_status 
+FROM offers_2
+WHERE email IN (
+        SELECT 
+        UPPER(EMAIL) as join_email
+        FROM
+            BL_PROD.EVENT
+        WHERE 
+        campaign_id IN ('8262315')
+        and event_name = 'emailSend'
+        and transactional_data LIKE '%EXC088P%'
+        AND CREATED_AT >= '2024-03-06 00:00:00.000000'
+        )
+        ),
+
+population AS (
+    SELECT 
+        'BIN_1_TEST' AS bin_name,
+        COUNT(DISTINCT email) AS population_count
+    FROM 
+        BIN_1_TEST
+    UNION ALL
+    SELECT 
+        'BIN_1_BAU' AS bin_name,
+        COUNT(DISTINCT email) AS population_count
+    FROM 
+        BIN_1_BAU
+    UNION ALL 
+    SELECT
+        'BIN_2' AS bin_name,
+        COUNT(DISTINCT email) AS population_count
+    FROM 
+        BIN_2
+),
+
+base_table AS (
+SELECT * FROM population
+-- this is just the test population. 
+),
+
+
+------------------------------------ BIN_1_TEST ------------------------------------
+-- email sends from bin 1 test
+send_bin_test AS (
+SELECT 
+    count(distinct message_id) as email_sends,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailSend' THEN 'BIN_1_TEST'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailSend'
+--    AND workflow_id = '422740'  
+    AND campaign_id IN ('9198870','9198946','9198966','9199010','9198886','9199074','9199084')
+    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    AND lower(email) IN (
+        SELECT 
+        lower(join_email) from sends
+    )
+GROUP BY 2,3
+),
+
+open_bin_test AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_open,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailOpen' THEN 'BIN_1_TEST'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailOpen'
+    AND workflow_id = '422740'  
+    AND campaign_id IN ('9198870','9198946','9198966','9199010','9198886','9199074','9199084')
+--    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(join_email) from sends
+    )
+ GROUP BY 2,3
+),
+
+click_bin_test AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_click,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailClick' THEN 'BIN_1_TEST'
+        ELSE  event_name
+    END AS population
+FROM
+    PROD.EVENT
+WHERE
+event_name = 'emailClick'
+  --  AND workflow_id = '422740'  
+    AND campaign_id IN ('9198870','9198946','9198966','9199010','9198886','9199074','9199084')
+    AND additional_properties LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(join_email) from sends
+    )
+ GROUP BY 2,3
+),
+
+------------------------------------ BIN_1_BAU ------------------------------------
+-- email sends from bin 1 BAU
+send_bin_bau AS (
+SELECT 
+    count(distinct message_id) as email_sends,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailSend' THEN 'BIN_1_BAU'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailSend'
+--    AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_1_BAU
+    )
+GROUP BY 2,3
+),
+
+open_bin_bau AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_open,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailOpen' THEN 'BIN_1_BAU'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailOpen'
+    AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+--    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_1_BAU
+    )
+ GROUP BY 2,3
+),
+
+click_bin_bau AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_click,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailClick' THEN 'BIN_1_BAU'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailClick'
+  --  AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+    AND additional_properties LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_1_BAU
+    )
+ GROUP BY 2,3
+),
+
+------------------------------------ BIN_2 ------------------------------------
+-- email sends from bin 1 BAU
+send_bin_2 AS (
+SELECT 
+    count(distinct message_id) as email_sends,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailSend' THEN 'BIN_2'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailSend'
+--    AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_2
+    )
+GROUP BY 2,3
+),
+
+open_bin_2 AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_open,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailOpen' THEN 'BIN_2'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailOpen'
+    AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+--    AND transactional_data LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_2
+    )
+ GROUP BY 2,3
+),
+
+click_bin_2 AS ( --- need to validate this 
+SELECT 
+    count(distinct message_id) as email_click,
+    json_extract_path_text(additional_properties,'workflowId') as workflow_id,
+    CASE 
+        WHEN event_name = 'emailClick' THEN 'BIN_2'
+        ELSE  event_name
+    END AS population
+FROM
+    BL_PROD.EVENT
+WHERE
+event_name = 'emailClick'
+  --  AND workflow_id = '422740'  
+    AND campaign_id IN ('8262315','8266441','8266444','8266447')
+    AND additional_properties LIKE '%EXC088P%'
+    AND CREATED_AT >= '2024-03-06'
+    
+    AND lower(email) IN (
+        SELECT 
+        lower(email) from BIN_2
+    )
+ GROUP BY 2,3
+)
+
+SELECT 
+    bin_name, 
+    population_count,
+    NULL AS email_sends,
+    NULL AS population,
+    NULL AS email_open,
+    NULL AS email_click
+FROM 
+    base_table
+UNION ALL
+SELECT 
+    'BIN_1_TEST' AS bin_name,
+    NULL AS population_count,
+    email_sends,
+    population,
+    NULL AS email_open,
+    NULL AS email_click
+FROM 
+    send_bin_test
+UNION ALL
+SELECT 
+    'BIN_1_TEST' AS bin_name,
+    NULL AS population_count,
+    NULL AS email_sends,
+    population,
+    email_open,
+    NULL AS email_click
+FROM 
+    open_bin_test
+UNION ALL
+SELECT 
+    'BIN_1_TEST' AS bin_name,
+    NULL AS population_count,
+    NULL AS email_sends,
+    population,
+    NULL AS email_open,
+    email_click
+FROM 
+    click_bin_test;
+
