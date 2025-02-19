@@ -1,0 +1,212 @@
+-- DATASET SAMPLE
+-- SELECT COUNT(DISTINCT ID) FROM mexico_covid19 LIMIT 30
+
+WITH 
+
+CENTER AS (
+SELECT 
+	CASE 
+    WHEN entidad = 'Ciudad de Mexico' THEN 'Center'
+    WHEN entidad = 'Mexico' THEN 'Center'
+    WHEN entidad = 'Queretaro' THEN 'Center'
+    WHEN entidad = 'Hidalgo' THEN 'Center'
+    WHEN entidad = 'Morelos' THEN 'Center'
+    WHEN entidad = 'Tlaxcala' THEN 'Center' 
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Ciudad de Mexico', 'Mexico', 'Queretaro', 'Hidalgo', 'Morelos', 'Tlaxcala')
+GROUP BY 1
+),
+
+NORTH AS (
+SELECT 
+	CASE 
+    WHEN entidad = 'Baja California' THEN 'North'
+    WHEN entidad = 'Baja California Sur' THEN 'North'
+    WHEN entidad = 'Sonora' THEN 'North'
+    WHEN entidad = 'Sinaloa' THEN 'North'
+    WHEN entidad = 'Chihuahua' THEN 'North'
+    WHEN entidad = 'Durango' THEN 'North' 
+    WHEN entidad = 'Coahuila' THEN 'North' 
+    WHEN entidad = 'Nuevo Leon' THEN 'North' 
+    WHEN entidad = 'Zacatecas' THEN 'North'
+    WHEN entidad = 'San Luis Potosi' THEN 'North' 
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Baja California','Baja California Sur','Sonora','Sinaloa','Chihuahua','Durango','Coahuila','Nuevo Leon','Zacatecas','San Luis Potosi')
+GROUP BY 1
+),
+
+WEST AS (
+SELECT 
+	CASE 
+    WHEN entidad = 'Aguascalientes' THEN 'West'
+    WHEN entidad = 'Guanajuato' THEN 'West'
+    WHEN entidad = 'Jalisco' THEN 'West'
+    WHEN entidad = 'Nayarit' THEN 'West'
+    WHEN entidad = 'Colima' THEN 'West'
+    WHEN entidad = 'Michoacan' THEN 'West'
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Aguascalientes','Guanajuato','Jalisco','Nayarit','Colima','Michoacan')
+GROUP BY 1
+),
+
+SOUTH AS (
+SELECT 
+	CASE 
+    WHEN entidad = 'Guerrero' THEN 'South'
+    WHEN entidad = 'Oaxaca' THEN 'South' 
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Guerrero','Oaxaca')
+GROUP BY 1
+),
+
+EAST AS (
+SELECT 
+	CASE 
+    WHEN entidad = 'Puebla' THEN 'East'
+    WHEN entidad = 'Veracruz' THEN 'East' 
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Puebla','Veracruz')
+GROUP BY 1
+),
+
+SOUTHWEST AS ( 
+SELECT 
+	CASE 
+    WHEN entidad = 'Chiapas' THEN 'South West'
+    WHEN entidad = 'Tabasco' THEN 'South West' 
+    WHEN entidad = 'Campeche' THEN 'South West' 
+    WHEN entidad = 'Yucatan' THEN 'South West' 
+    WHEN entidad = 'Quintana Roo' THEN 'South West' 
+    ELSE Entidad 
+    END AS 'Region',
+	count(DISTINCT ID) as case_count,
+    AVG(edad) as avg_age,
+    SUM(CASE WHEN habla_lengua_indig = 1 THEN 1 ELSE 0 END) AS tribal_count,
+    SUM(CASE WHEN diabetes = 1 THEN 1 ELSE 0 END) AS diabetes_count,
+	SUM(CASE WHEN INMUSUPR = 1 THEN 1 ELSE 0 END) AS inmunosupr_count,
+    SUM(CASE WHEN hipertension = 1 THEN 1 ELSE 0 END) AS hipertension_count,
+    SUM(CASE WHEN cardiovascular = 1 THEN 1 ELSE 0 END) AS cardiovascular_count,
+    SUM(CASE WHEN tabaquismo = 1 THEN 1 ELSE 0 END) AS tabaquismo_count,
+	SUM(CASE WHEN epoc = 1 THEN 1 ELSE 0 END) AS epoc_count,
+	SUM(CASE WHEN INTUBADO = 1 THEN 1 ELSE 0 END) AS intubated_count,
+    SUM(CASE WHEN fecha_def <> '9999-99-99' THEN 1 ELSE 0 END) as deaths 
+FROM mexico_covid19
+WHERE entidad IN ('Chiapas','Tabasco','Campeche','Yucatan','Quintana Roo')
+GROUP BY 1
+),
+
+POPULATION AS (
+  SELECT * FROM CENTER
+  UNION ALL
+  SELECT * FROM SOUTH
+  UNION ALL 
+  SELECT * FROM NORTH
+  UNION ALL 
+  SELECT * FROM WEST
+  UNION ALL 
+  SELECT * FROM SOUTHWEST
+  UNION ALL 
+  SELECT * FROM EAST)
+ 
+SELECT 
+	region,
+    case_count,
+    avg_age,
+    tribal_count,
+    inmunosupr_count,
+		(inmunosupr_count*100)/NULLIF(case_count,0) as immunosupression_rate,
+    diabetes_count,
+        (diabetes_count*100)/NULLIF(case_count,0) as diabetes_rate,
+    cardiovascular_count,
+        (cardiovascular_count*100)/NULLIF(case_count,0) as cardiovascular_rate,
+    tabaquismo_count,
+        (tabaquismo_count*100)/NULLIF(case_count,0) as smoker_rate,
+    epoc_count,
+        (epoc_count*100)/NULLIF(case_count,0) as epoc_rate,
+    intubated_count,
+        (intubated_count*100)/NULLIF(case_count,0) as intubation_rate,
+    deaths,
+		(deaths*100)/NULLIF(case_count,0) as death_rate
+ FROM POPULATION
+;
+
+/* STATE GUIDE 
+Centro
+('Ciudad de Mexico', 'Mexico', 'Queretaro', 'Hidalgo', 'Morelos', 'Tlaxcala')
+Norte
+('Baja California','Baja California Sur','Sonora','Sinaloa','Chihuahua','Durango','Coahuila','Nuevo Leon','Zacatecas','San Luis Potosi')
+Oeste
+('Aguascalientes','Guanajuato','Jalisco','Nayarit','Colima','Michoacan')
+Este
+('Puebla','Veracruz')
+Sur
+('Guerrero','Oaxaca')
+Sureste
+('Chiapas','Tabasco','Campeche','Yucatan','Quintana Roo')
+
+*/
