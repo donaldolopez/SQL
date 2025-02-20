@@ -1,3 +1,17 @@
+/*
+This query is assessing how different customer segments perform in an email campaign. It identifies test and control groups (BIN_1_TEST, BIN_1_BAU, BIN_2), tracks email engagement, and helps analyze campaign effectiveness.
+
+Objectives: 
+1. Categorize customers based on risk / response scores, understand their engagement with email campaigns. 
+2. Track campaign performance by KPIs (Send, open & click rates)
+3. Segment engagement data to evaluate which segments are more responsive, correlate the risk level to email engagement, allows A/B testing comparison.
+
+Application: 
+- Adjust messaging according to customer segmentation. 
+- Increase engagement with lower performing segments through retargeting. 
+- Scale successful strategies used for high-response groups.
+*/
+
 WITH 
 
 offers AS (
