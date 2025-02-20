@@ -22,7 +22,7 @@ transactions AS (
         tran_fact
     WHERE 
         send_date BETWEEN '2023-01-01' AND '2023-06-30' 
-        AND product_name = 'MONEY TRANSFER'                      -- Filter for Money Transfers
+        AND product_name = 'TRANSFER'                      -- Filter for Transfers
         AND internal_flag = 'N'                         
         AND current_transaction_status NOT IN ('REJ', 'REF', 'RSN', 'UAK')  -- Completed transactions only
         AND id IS NOT NULL                            
@@ -36,7 +36,7 @@ Audience AS (
         send_date,
         segments
     FROM transactions t
-    JOIN enterprise e ON t.sender_ucp_id = e.sender_ucp_id
+    JOIN enterprise e ON t.id = e.id
 ),
 
 Aggregated AS (
