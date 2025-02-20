@@ -1,3 +1,7 @@
+/*
+This SQL query analyzes money transfer transactions to segment customers into quintiles based on their total send amount. It extracts transaction data, filters for relevant conditions, and assigns each customer to one of five quintiles. The output summarizes key metrics per quintile, including the number of customers, total transaction amount, and total transaction count.
+*/
+
 WITH 
 
 Enterprise AS (
