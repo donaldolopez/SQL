@@ -1,0 +1,93 @@
+/*
+The query is designed to measure customer migration & retention across different segments over a one-year period. It identifies customers who were classified as Frequent Transactors and High Value, and determines what percentage of them migrated or remained in the High Value segment by the end of 2024.
+
+Objectives: 
+1. Measure customer retention and understand how well the company is maintaining its most valuable customers over time. 
+2. Determine whether customers in a segment tend to stay there or downgrade to lower segments 
+3. Identify churn risks for customers that don't remain in a high value segment.
+4. Evaluate the effectiveness of retention strategies, loyalty programs based on retention and migration. 
+
+Aplications:
+- Refine segmentation strategies by adding layers of data such as demographic, behavioral, financial, etc.
+- Develop and improve loyalty programs to keep High value customers engaged and promote migration. 
+- Introduce personalized offers to encourage higher engagement in customers that fell to lower tier.
+- Predict the LTV and plan marketing budgets effectively
+- Compare retention rates with industry benchmarks to assess the company's competitive position. 
+
+*/
+
+-- This piece of code identifies the customers that have transition (in this case upgraded) to a different enterprise segment over a defined time period.
+
+WITH Frequent_Transactors AS (
+    SELECT 
+        e.id
+    FROM 
+        transactions e
+    LEFT JOIN segments_mom_122023 c ON e.id = c.id
+    WHERE 
+        e.send_date BETWEEN '2023-01-01' AND '2023-12-31'
+        AND e.product_name = 'Cheese'
+        AND e.send_pty_internal_flag = 'N'
+        AND e.current_status NOT IN ('REJ', 'REF', 'RSN', 'UAK')
+        AND e.id IS NOT NULL
+        AND (e.send_hq_pty_name = 'CHEESE ONLINE' OR LOWER(e.send_agent_sub_seg_desc) = 'cheese white label')
+        AND c.segments = 'Frequent Transactor'
+),
+High_Value_Upgraded AS (
+    SELECT 
+        ft.id
+    FROM 
+        Frequent_Transactors ft
+    LEFT JOIN segments_mom_122024 b ON ft.id = b.id
+    WHERE 
+        b.segments = 'High Value'
+)
+SELECT
+    COUNT(DISTINCT(ft.id)) AS Total_Frequent_Transactors,
+    COUNT(DISTINCT(hv.id)) AS High_Value_Upgraded,
+    ROUND(
+        COUNT(DISTINCT(hv.id)) * 100.0 / COUNT(DISTINCT(ft.id)), 
+        2
+    ) AS Upgrade_Percentage
+FROM 
+    Frequent_Transactors ft
+LEFT JOIN High_Value_Upgraded hv ON ft.id = hv.id;
+
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- The following piece of code identifies the customers that remained in the same enterprise segment after a specified time period. 
+
+WITH High_Value_Customers AS (
+    SELECT 
+        e.id
+    FROM 
+        tran_dfact e
+    LEFT JOIN segments_mom_122023 c ON e.id = c.id
+    WHERE 
+        e.send_date BETWEEN '2023-01-01' AND '2023-12-31'
+        AND e.product_name = 'Cheese'
+        AND e.send_pty_internal_flag = 'N'
+        AND e.current_status NOT IN ('REJ', 'REF', 'RSN', 'UAK')
+        AND e.id IS NOT NULL
+        AND (e.send_hq_pty_name = 'CHEESE ONLINE' OR LOWER(e.send_agent_sub_seg_desc) = 'cheese white label')
+        AND c.segments = 'High Value'
+),
+Still_High_Value AS (
+    SELECT 
+        hv.id
+    FROM 
+        High_Value_Customers hv
+    LEFT JOIN segments_mom_122024 b ON hv.id = b.id
+    WHERE 
+        b.segments = 'High Value'
+)
+SELECT
+    COUNT(DISTINCT(hv.id)) AS Total_High_Value_Customers,
+    COUNT(DISTINCT(shv.id)) AS Still_High_Value_Customers,
+    ROUND(
+        COUNT(DISTINCT(shv.id)) * 100.0 / COUNT(DISTINCT(hv.id)), 
+        2
+    ) AS Retention_Percentage
+FROM 
+    High_Value_Customers hv
+LEFT JOIN Still_High_Value shv ON hv.id = shv.id;
