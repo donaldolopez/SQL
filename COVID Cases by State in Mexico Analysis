@@ -1,3 +1,18 @@
+/*
+This SQL query analyzes COVID-19 case data for different regions in Mexico. It aggregates case counts and key health indicators (e.g., diabetes, hypertension, intubation) by region. The goal is to assess health vulnerabilities and death rates across different parts of the country.
+
+Objectives:
+1. Segment by Region and Analyze the Occurrence of COVID-19 Cases
+2. Flag Key Values to Identify the Variables with Highest Incidence
+3. Calculate the Rate of Prevalent Conditions and Their Correlation to the Death Rate
+
+Applications: 
+- Identify Conditions that Need Improvement to Reduce Deaths
+- Calculate the Likelihood of Death Based on Existing Data.
+-  Forecast Potential Deaths by Analyzing Comorbidities by identifying regions with higher percentages of specific conditions
+- Predictive Modeling by forecasting potential deaths more accurately and allocate resources to those regions with the highest predicted impact.
+*/
+
 -- DATASET SAMPLE
 -- SELECT COUNT(DISTINCT ID) FROM mexico_covid19 LIMIT 30
 
